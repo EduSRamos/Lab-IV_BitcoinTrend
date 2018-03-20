@@ -1,0 +1,20 @@
+name: LabIV
+channels:
+  - defaults
+dependencies:
+  - certifi=2018.1.18=py36_0
+  - pip=9.0.1=py36_5
+  - python=3.6.4=h0c2934d_3
+  - setuptools=38.5.1=py36_0
+  - vc=14=h0510ff6_3
+  - vs2015_runtime=14.0.25123=3
+  - wheel=0.30.0=py36h6c3ec14_1
+  - wincertstore=0.2=py36h7fe50ca_0
+  - pip:
+    - chardet==3.0.4
+    - coinbase==2.1.0
+    - idna==2.6
+    - pycryptodome==3.5.1
+    - requests==2.18.4
+    - six==1.11.0
+    - urllib3==1.22

@@ -1,0 +1,17 @@
+Exportei o arquivo do meu ambiente do Anaconda para
+que todo mundo fique com um ambiente default com
+os mesmos pacotes.
+
+Para criar este ambiente no seu computador, após
+instalar o Anaconda, vá ao terminal e navegue
+até a pasta do repositório e localize o arquivo
+CondaEnv_LabIV.yml.
+
+Em seguida digite conda env create -f CondaEnv_LabIV.yml
+
+Se alguem adicionar algum pacote, lembre de adiciona-lo
+no ambiente do conda, depois exporte e comite o novo
+arquivo .yml.
+
+Para exportar o ambiente do conda digite:
+conda env export > CondaEnv_LabIV.yml
