@@ -31,7 +31,7 @@ print(price)
 #week - Pega o histórico da última semana (316 pontos)
 #month - Pega o histórico do último mês (360 pontos)
 #year - Pega o histórico do último ano (365 pontos)
-#all - 
+#all - Pegar o histórico do último ano(não entendi, mas pega mais pontos)
 historic = client.get_historic_prices(currency_pair = 'BTC-USD', period = 'hour')
 
 print(historic)
