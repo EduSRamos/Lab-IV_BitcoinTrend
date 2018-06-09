@@ -20,6 +20,200 @@ Indicators implemented (functions):
 import pandas as pd
 import numpy as np
 
+def SMA_prediction(df, small_window=50, large_window=200):
+    """Implements buy/sell strategy based on SMA crossover.
+
+    Keyword arguments:
+    df -- DataFrame with column 'Close'
+    initial_position -- if person begins with BTC (1) or not (-1) (default: 1)
+    small_window -- width of small window (default: 50)
+    large_window -- width of large window (default: 200)
+
+    Output:
+    df_pred -- DataFrame with predictions in column 'SMA_Pred'
+
+    SEE function SMA()
+    """
+
+    # Calculate moving averages
+    df_sma = SMA(df, small_window, col='Close')
+    df_sma['SMA_long'] = SMA(df, large_window, col='Close')
+    df_sma = df_sma.dropna()
+    df_sma['SMA_diff'] = df_sma['SMA'] -  df_sma['SMA_long']
+
+    df_pred = df_sma[['SMA_diff']].copy()
+    df_pred = (df_pred > 0).astype(float) * 2 - 1
+    df_pred = df_pred.rename(columns={'SMA_diff':'SMA_Pred'})
+
+    return df_pred
+def EMA_prediction(df, small_window=5, large_window=35):
+    """Implements buy/sell strategy based on EMA crossover.
+
+    Keyword arguments:
+    df -- DataFrame with column 'Close'
+    initial_position -- if person begins with BTC (1) or not (-1) (default: 1)
+    small_window -- width of small window (default: 5)
+    large_window -- width of large window (default: 35)
+
+    Output:
+    df_pred -- DataFrame with predictions in column 'EMA_Pred'
+
+    SEE function EMA()
+    """
+
+    # Calculate moving averages
+    df_sma = EMA(df, small_window, col='Close')
+    df_sma['EMA_long'] = EMA(df, large_window, col='Close')
+    df_sma = df_sma.dropna()
+    df_sma['EMA_diff'] = df_sma['EMA'] -  df_sma['EMA_long']
+
+    df_pred = df_sma[['EMA_diff']].copy()
+    df_pred = (df_pred > 0).astype(float) * 2 - 1
+    df_pred = df_pred.rename(columns={'EMA_diff':'EMA_Pred'})
+
+    return df_pred
+def BB_prediction(df, initial_position=1):
+    """Implements buy/sell strategy based on the Bollinger Bands.
+
+    Keyword arguments:
+    df -- DataFrame with columns {'Close', 'BB_Top', 'BB_Bottom'}
+    initial_position -- if person begins with BTC (1) or not (-1) (default: 1)
+
+    Output:
+    df_pred -- DataFrame with predictions in column 'BB_Pred'
+
+    SEE function BB()
+    """
+
+    df_pred = pd.DataFrame(data=np.zeros(df.shape[0]), index=df.index, columns=['BB_Pred'])
+    current = initial_position # has bitcoins
+    for idx in df.index:
+        if df.loc[idx, 'Close'] > df.loc[idx, 'BB_Top']:
+            current = -1 # sell bitcoins, the price should fall
+        elif df.loc[idx, 'Close'] < df.loc[idx, 'BB_Bottom']:
+            current = 1  # buy bitcoins, the price should rise
+        df_pred.loc[idx, 'BB_Pred'] = current
+
+    return df_pred
+def MACD_prediction(df):
+    """Implements buy/sell strategy based on the MACD.
+
+    Keyword arguments:
+    df -- DataFrame with column 'MACD_Hist'
+
+    Output:
+    df_pred -- DataFrame with predictions in column 'MACD_Pred'
+
+    SEE function MACD()
+    """
+    df_pred = df[['MACD_Hist']].copy()
+    df_pred = (df_pred > 0).astype(float) * 2 - 1
+    df_pred = df_pred.rename(columns={'MACD_Hist':'MACD_Pred'})
+
+    return df_pred
+def STOCH_prediction(df, initial_position=1, buy=20, sell=80):
+    """Implements buy/sell strategy based on the Stochastic Oscillator.
+
+    Keyword arguments:
+    df -- DataFrame with column '%K'
+    initial_position -- if person begins with BTC (1) or not (-1) (default: 1)
+    buy -- buy level
+    sell -- sell level
+
+    Output:
+    stoch_pred -- DataFrame with predictions in column 'STOCH_Pred'
+
+    SEE function STOCH()
+    """
+
+    df_pred = pd.DataFrame(data=np.zeros(df.shape[0]), index=df.index, columns=['STOCH_Pred'])
+    current = initial_position # has bitcoins?
+    for idx in df.index:
+        if df.loc[idx, '%K'] > sell:
+            current = -1 # sell bitcoins, the price should fall
+        elif df.loc[idx, '%K'] < buy:
+            current = 1  # buy bitcoins, the price should rise
+        df_pred.loc[idx, 'STOCH_Pred'] = current
+
+    return df_pred
+def RSI_prediction(df, initial_position=1, buy=20, sell=80):
+    """Implements buy/sell strategy based on the RSI.
+
+    Keyword arguments:
+    df -- DataFrame with column 'RSI'
+    initial_position -- if person begins with BTC (1) or not (-1) (default: 1)
+    buy -- buy level
+    sell -- sell level
+
+    Output:
+    df_pred -- DataFrame with predictions in column 'RSI_Pred'
+
+    SEE function RSI()
+    """
+
+    df_pred = pd.DataFrame(data=np.zeros(df.shape[0]), index=df.index, columns=['RSI_Pred'])
+    current = initial_position # has bitcoins?
+    for idx in df.index:
+        if df.loc[idx, 'RSI'] > sell:
+            current = -1 # sell bitcoins, the price should fall
+        elif df.loc[idx, 'RSI'] < buy:
+            current = 1  # buy bitcoins, the price should rise
+        df_pred.loc[idx, 'RSI_Pred'] = current
+
+    return df_pred
+def CHAIKIN_prediction(df):
+    """Implements buy/sell strategy based on the CHAIKIN.
+
+    Keyword arguments:
+    df -- DataFrame with column 'CHAIKIN'
+
+    Output:
+    df_pred -- DataFrame with predictions in column 'MACD_Pred'
+
+    SEE function CHAIKIN()
+    """
+    if df.loc[df.index[0], 'CHAIKIN'] > 0:
+        current = 1   # starts with bitcoins
+    else:
+        current = -1  # starts without bitcoins
+
+    df_pred = pd.DataFrame(data=np.zeros(df.shape[0]-1), index=df.index[1:], columns=['CHAIKIN_Pred'])
+    for i in range(1,df.shape[0]):
+        if df.loc[df.index[i-1], 'CHAIKIN'] < 0 and df.loc[df.index[i], 'CHAIKIN'] > 0:
+            current = 1 # from < 0 to > 0: buy
+        if df.loc[df.index[i-1], 'CHAIKIN'] > 0 and df.loc[df.index[i], 'CHAIKIN'] < 0:
+            current = -1 # from > 0 to < 0: sell
+
+        df_pred.loc[df.index[i], 'CHAIKIN_Pred'] = current
+
+    return df_pred
+def AROON_prediction(df, initial_position=1, buy=70, sell=-70):
+    """Implements buy/sell strategy based on the AROON Oscillator.
+
+    Keyword arguments:
+    df -- DataFrame with column 'Aroon_Osc'
+    initial_position -- if person begins with BTC (1) or not (-1) (default: 1)
+    buy -- buy level
+    sell -- sell level
+
+    Output:
+    df_pred -- DataFrame with predictions in column 'Aroon_Pred'
+
+    SEE function RSI()
+    """
+
+    # Premise: starts with bitcoins
+    df_pred = pd.DataFrame(data=np.zeros(df.shape[0]), index=df.index, columns=['Aroon_Pred'])
+    current = initial_position # has bitcoins?
+    for idx in df.index:
+        if df.loc[idx, 'Aroon_Osc'] < sell:
+            current = -1 # sell bitcoins, the price should fall
+        elif df.loc[idx, 'Aroon_Osc'] > buy:
+            current = 1  # buy bitcoins, the price should rise
+        df_pred.loc[idx, 'Aroon_Pred'] = current
+
+    return df_pred
+
 # Simple Moving Average - Dependencies: last <window-1> values / Range: inf
 def SMA(df_arr, window, col='Close'):
     """Calculate the Simple Moving Average.
