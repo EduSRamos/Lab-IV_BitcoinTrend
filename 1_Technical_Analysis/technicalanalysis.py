@@ -111,11 +111,11 @@ def MACD_prediction(df):
     df_pred = df_pred.rename(columns={'MACD_Hist':'MACD_Pred'})
 
     return df_pred
-def STOCH_prediction(df, initial_position=1, buy=20, sell=80):
+def STOCH_prediction(df, buy=20, sell=80, initial_position=1):
     """Implements buy/sell strategy based on the Stochastic Oscillator.
 
     Keyword arguments:
-    df -- DataFrame with column '%K'
+    df -- DataFrame with column '%D'
     initial_position -- if person begins with BTC (1) or not (-1) (default: 1)
     buy -- buy level
     sell -- sell level
@@ -129,14 +129,14 @@ def STOCH_prediction(df, initial_position=1, buy=20, sell=80):
     df_pred = pd.DataFrame(data=np.zeros(df.shape[0]), index=df.index, columns=['STOCH_Pred'])
     current = initial_position # has bitcoins?
     for idx in df.index:
-        if df.loc[idx, '%K'] > sell:
+        if df.loc[idx, '%D'] > sell:
             current = -1 # sell bitcoins, the price should fall
-        elif df.loc[idx, '%K'] < buy:
+        elif df.loc[idx, '%D'] < buy:
             current = 1  # buy bitcoins, the price should rise
         df_pred.loc[idx, 'STOCH_Pred'] = current
 
     return df_pred
-def RSI_prediction(df, initial_position=1, buy=20, sell=80):
+def RSI_prediction(df, buy=20, sell=80, initial_position=1):
     """Implements buy/sell strategy based on the RSI.
 
     Keyword arguments:
@@ -187,7 +187,7 @@ def CHAIKIN_prediction(df):
         df_pred.loc[df.index[i], 'CHAIKIN_Pred'] = current
 
     return df_pred
-def AROON_prediction(df, initial_position=1, buy=70, sell=-70):
+def AROON_prediction(df, buy=70, sell=-70, initial_position=1):
     """Implements buy/sell strategy based on the AROON Oscillator.
 
     Keyword arguments:

@@ -3,6 +3,7 @@ import numpy as np
 import datetime
 from dateutil.relativedelta import relativedelta
 import sklearn.preprocessing as skp
+import sklearn.metrics as skm
 
 import statsmodels.formula.api as smf
 import statsmodels.tsa.api as smt
