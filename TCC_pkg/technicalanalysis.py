@@ -20,6 +20,99 @@ Indicators implemented (functions):
 import pandas as pd
 import numpy as np
 
+import operator
+
+from . import dataanalysis as da
+from . import testspecification as tspec
+
+# def execute_test_routine(df, test_spec, ta_params, ta_pred_func):
+#     decay_array = (0.95, 0.98, 0.99, 0.995, 0.999)
+#     start_dates = test_spec.start_dates
+#
+#     # Remove NaN entries
+#     df = df.dropna()
+#
+#     # Predict for every combination of parameters
+#     for params in ta_params:
+#         df['{}'.format(params)] = ta_pred_func(df, *params)
+#
+#     # Remove NaN entries
+#     df = df.dropna()
+#
+#     # Initialize variables
+#     pred_arr = np.empty(0)
+#     real_arr = np.empty(0)
+#     for instance in test_spec.instance:
+#         decay_acc = {}
+#         for decay in decay_array:
+#             decay_acc[decay] = 0
+#
+#             # For each forward validation index, get validation-set performance
+#             for ifv in range(len(instance.expanding_window_fv.train_sets)): # expanding window only
+#                 train_ind = instance.expanding_window_fv.train_sets[ifv]
+#
+#                 # For each combination of parameters, evaluate their weighted-acc
+#                 params_acc = {}
+#                 for params in ta_params:
+#                     real = df.loc[:train_ind[-1], 'Direction'].values
+#                     pred = df.loc[:train_ind[-1],'{}'.format(params)].values
+#                     params_acc[params] = da.acc_weighted(real, pred, decay)
+#
+#                 # Apply best params to the validation set
+#                 val_ind = instance.expanding_window_fv.val_sets[ifv]
+#                 best_params = max(params_acc.items(), key=operator.itemgetter(1))[0]
+#                 real = df.loc[val_ind, 'Direction'].values
+#                 pred = df.loc[val_ind,'{}'.format(best_params)].values
+#                 decay_acc[decay] += da.acc_weighted(real, pred, decay)
+#
+#         # Decay that yielded maximum acc
+#         best_decay = max(decay_acc.items(), key=operator.itemgetter(1))[0]
+#
+#         # Use best_decay to select among parameters
+#         params_acc = {}
+#         train_set = instance.train_set
+#         for params in ta_params:
+#             real = df.loc[:train_set[-1], 'Direction'].values
+#             pred = df.loc[:train_set[-1],'{}'.format(params)].values
+#             params_acc[params] = da.acc_weighted(real, pred, best_decay)
+#         best_params = max(params_acc.items(), key=operator.itemgetter(1))[0]
+#
+#         # Predict using parameters
+#         pred = df.loc[instance.test_set, '{}'.format(best_params)].values.astype(int)
+#         real = df.loc[instance.test_set,'Direction'].values.astype(int)
+#         pred_arr = np.r_[pred_arr, pred]
+#         real_arr = np.r_[real_arr, real]
+#
+#     # Evaluate the entire test set together
+#     quality_metrics_dict = da.classification_metrics(y_true=real_arr, y_pred=pred_arr)
+#
+#     return quality_metrics_dict
+# def execute_nonparam_test_routine(df, test_spec, ta_pred_func):
+#     start_dates = test_spec.start_dates
+#
+#     # Remove NaN entries
+#     df = df.dropna()
+#
+#     # Predict for only combination of parameters
+#     df['Pred'] = ta_pred_func(df)
+#
+#     # Remove NaN entries
+#     df = df.dropna()
+#
+#     # Initialize variables
+#     pred_arr = np.empty(0)
+#     real_arr = np.empty(0)
+#     for instance in test_spec.instance:
+#         pred = df.loc[instance.test_set,'Pred'].values.astype(int)
+#         real = df.loc[instance.test_set,'Direction'].values.astype(int)
+#         pred_arr = np.r_[pred_arr, pred]
+#         real_arr = np.r_[real_arr, real]
+#
+#     # Evaluate the entire test set together
+#     quality_metrics_dict = da.classification_metrics(y_true=real_arr, y_pred=pred_arr)
+#
+#     return quality_metrics_dict
+
 def SMA_prediction(df, small_window=50, large_window=200):
     """Implements buy/sell strategy based on SMA crossover.
 
@@ -62,12 +155,12 @@ def EMA_prediction(df, small_window=5, large_window=35):
     """
 
     # Calculate moving averages
-    df_sma = EMA(df, small_window, col='Close')
-    df_sma['EMA_long'] = EMA(df, large_window, col='Close')
-    df_sma = df_sma.dropna()
-    df_sma['EMA_diff'] = df_sma['EMA'] -  df_sma['EMA_long']
+    df_ema = EMA(df, small_window, col='Close')
+    df_ema['EMA_long'] = EMA(df, large_window, col='Close')
+    df_ema = df_ema.dropna()
+    df_ema['EMA_diff'] = df_ema['EMA'] -  df_ema['EMA_long']
 
-    df_pred = df_sma[['EMA_diff']].copy()
+    df_pred = df_ema[['EMA_diff']].copy()
     df_pred = (df_pred > 0).astype(float) * 2 - 1
     df_pred = df_pred.rename(columns={'EMA_diff':'EMA_Pred'})
 
@@ -243,7 +336,6 @@ def SMA(df_arr, window, col='Close'):
     else:
         sma = np.convolve(values, weights, 'valid')
     return sma
-
 # Exponential Moving Average - Dependencies: last <window-1> values / Range: inf
 def EMA(df_arr, window, col='Close'):
     """Calculate the Exponential Moving Average.
@@ -274,7 +366,6 @@ def EMA(df_arr, window, col='Close'):
     else:
         ema = ema_arr
     return ema
-
 # Bollinger Bands: Dependencies: last 19 values / Range: unbounded
 def BB(df, col='Close'):
     """Calculate the Bollinger Bands.
@@ -300,7 +391,6 @@ def BB(df, col='Close'):
               }
     bb = pd.DataFrame(data=bb_dict, index=df.index[19:])
     return bb
-
 # MA Convergence Divergence - Dependencies: last 32 values / Range: unbounded
 def MACD(df, col='Close'):
     """Calculate the MACD - Moving Average Convergence Divergence.
@@ -328,7 +418,6 @@ def MACD(df, col='Close'):
     macd_dict = {'MACD_Line':macd_line, 'MACD_SigLine':signal_line, 'MACD_Hist':macd_hist}
     macd = pd.DataFrame(data=macd_dict, index=df.index[-len(macd_line):])
     return macd
-
 # Stochastic Oscillator- Dependencies:last 13/16 values (%K/%D) / Range:[0, 100]
 def STOCH(df, cols={}):
     """Calculate the Stochastic Oscillator.
@@ -364,7 +453,6 @@ def STOCH(df, cols={}):
     stoch_dict = {'%K': K_ser, '%D':D_arr}
     stoch = pd.DataFrame(data=stoch_dict, index=K_ser.index)
     return stoch
-
 # Relative Strength Index - Dependencies: last 14 values / Range: [0, 100]
 def RSI(df, col='Close'):
     """Calculate the Relative Strength Index.
@@ -401,7 +489,6 @@ def RSI(df, col='Close'):
 
     rsi = pd.DataFrame(data=rsi_arr, index=df.index[14:], columns=['RSI'])
     return rsi
-
 # Chaikin Oscillator - Dependencies: last 10 values / Range: REALLY unbounded
 def CHAIKIN(df, cols={}):
     """Calculate the Accumulation Distribution Line and Chaikin Oscillator.
@@ -435,7 +522,6 @@ def CHAIKIN(df, cols={}):
     chaikin = pd.DataFrame(data=chaikin_arr, index=df.index[9:], columns=['CHAIKIN'])
 
     return chaikin
-
 # Aroon Oscillator - Dependencies: last 23 values / Range: [-100 100]
 def AROON(df, cols={}):
     """Calculate the Accumulation Distribution Line.
@@ -466,7 +552,6 @@ def AROON(df, cols={}):
     aroon_dict = {'Aroon_Up': aroon_up, 'Aroon_Down': aroon_down, 'Aroon_Osc':(aroon_up-aroon_down)}
     aroon = pd.DataFrame(data=aroon_dict, index=df.index[t-1:])
     return aroon
-
 # On-Balance Volume - Dependencies: last 1 day / Range: unbounded
 def OBV(df, cols={}):
     """Calculate the On-Balance Volume.
@@ -492,7 +577,6 @@ def OBV(df, cols={}):
 
     obv = pd.DataFrame(data=obv, index=df.index, columns=['OBV'])
     return obv
-
 # Price-Volume Trend - Dependencies: last 1 value / Range: unbounded
 def PVT(df, cols={}):
     col_names = {'Close':'Close', 'Volume':'Volume'}
@@ -507,7 +591,6 @@ def PVT(df, cols={}):
     pvt = pd.DataFrame(data=pvt_arr, index=df.index, columns=['PVT'])
 
     return pvt
-
 # Disparity - Dependencies: last <window-1> values / Range: [0, inf] (but ~ 1)
 def DISP(df, window, col='Close', ma_func=SMA):
     """Calculate the disparity indicator
@@ -530,7 +613,6 @@ def DISP(df, window, col='Close', ma_func=SMA):
     disp = pd.DataFrame(data=disp_arr, index=df.index[window-1:], columns=['DISP'])
 
     return disp
-
 # Rate of Change - Dependencies: last <window> values / Range: [0, inf] (but ~1)
 def ROC(df, gap, col='Close'):
     """Calculate the rate of change
@@ -552,7 +634,6 @@ def ROC(df, gap, col='Close'):
     roc = pd.DataFrame(data=roc_arr, index=df.index[gap:], columns=['ROC'])
 
     return roc
-
 # Larry William's %R - Dependencies: past 13 days / Range: [0 -100]
 def WILLIAMS(df, cols={}):
     """Calculate the disparity indicator
@@ -585,7 +666,6 @@ def WILLIAMS(df, cols={}):
     williams = pd.DataFrame(data=williams_arr, index=df.index[13:], columns=['Williams_%R'])
 
     return williams
-
 # Commodity Channel Index - Dependencies: last 19 values / Range: unbounded
 def CCI(df, cols={}):
     """Calculate the commodity channel index
@@ -626,3 +706,141 @@ def CCI(df, cols={}):
     cci = pd.DataFrame(data=cci_arr, index=df.index[19:], columns=['CCI'])
 
     return cci
+
+
+class TechAnalysis:
+    '''Technical Analysis class for '''
+    calc_funcs_dict =  {'STOCH': STOCH,
+                        'RSI': RSI,
+                        'AROON': AROON,
+                        'BB': BB,
+                        'MACD': MACD,
+                        'CHAIKIN': CHAIKIN }
+
+    param_funcs_dict = {'SMA': SMA_prediction,
+                        'EMA': EMA_prediction,
+                        'STOCH': STOCH_prediction,
+                        'RSI': RSI_prediction,
+                        'AROON': AROON_prediction }
+
+    nonparam_funcs_dict = {'BB': BB_prediction,
+                           'MACD': MACD_prediction,
+                           'CHAIKIN': CHAIKIN_prediction }
+
+    def __init__(self, df, test_spec):
+        self.df = df.copy()
+        self.test_spec = test_spec
+        self.params_dict = {'SMA': [(50,200), (30,70), (10,30)],
+                            'EMA': [(10,50),(5,35),(3,20)],
+                            'STOCH': [(20,80), (30,70), (40,60)],
+                            'RSI': [(20,80), (30,70), (40,60)],
+                            'AROON': [(90,-90), (70,-70), (30,-30)]
+                            }
+
+    def get_df(self, key):
+        df = self.df.copy()
+        if key in self.calc_funcs_dict:
+            df= pd.concat([df, self.calc_funcs_dict[key](df)], axis=1)
+        return df
+    def execute_test_routine(self):
+        ta_res = {}
+
+        for key, func in self.param_funcs_dict.items():
+            df = self.get_df(key)
+            ta_res[key] = self.execute_param_test_routine(df,
+                          ta_params=self.params_dict[key], ta_pred_func=func)
+
+        for key, func in self.nonparam_funcs_dict.items():
+            df = self.get_df(key)
+            ta_res[key] = self.execute_nonparam_test_routine(df, ta_pred_func=func)
+
+        self.results = pd.DataFrame(data=ta_res)
+    def execute_param_test_routine(self, df, ta_params, ta_pred_func):
+        test_spec = self.test_spec
+        decay_array = (0.95, 0.98, 0.99, 0.995, 0.999)
+        start_dates = test_spec.start_dates
+
+        # Remove NaN entries
+        df = df.dropna()
+
+        # Predict for every combination of parameters
+        for params in ta_params:
+            df['{}'.format(params)] = ta_pred_func(df, *params)
+
+        # Remove NaN entries
+        df = df.dropna()
+
+        # Initialize variables
+        pred_arr = np.empty(0)
+        real_arr = np.empty(0)
+        for instance in test_spec.instance:
+            decay_acc = {}
+            for decay in decay_array:
+                decay_acc[decay] = 0
+
+                # For each forward validation index, get validation-set performance
+                for ifv in range(len(instance.expanding_window_fv.train_sets)): # expanding window only
+                    train_ind = instance.expanding_window_fv.train_sets[ifv]
+
+                    # For each combination of parameters, evaluate their weighted-acc
+                    params_acc = {}
+                    for params in ta_params:
+                        real = df.loc[:train_ind[-1], 'Direction'].values
+                        pred = df.loc[:train_ind[-1],'{}'.format(params)].values
+                        params_acc[params] = da.acc_weighted(real, pred, decay)
+
+                    # Apply best params to the validation set
+                    val_ind = instance.expanding_window_fv.val_sets[ifv]
+                    best_params = max(params_acc.items(), key=operator.itemgetter(1))[0]
+                    real = df.loc[val_ind, 'Direction'].values
+                    pred = df.loc[val_ind,'{}'.format(best_params)].values
+                    decay_acc[decay] += da.acc_weighted(real, pred, decay)
+
+            # Decay that yielded maximum acc
+            best_decay = max(decay_acc.items(), key=operator.itemgetter(1))[0]
+
+            # Use best_decay to select among parameters
+            params_acc = {}
+            train_set = instance.train_set
+            for params in ta_params:
+                real = df.loc[:train_set[-1], 'Direction'].values
+                pred = df.loc[:train_set[-1],'{}'.format(params)].values
+                params_acc[params] = da.acc_weighted(real, pred, best_decay)
+            best_params = max(params_acc.items(), key=operator.itemgetter(1))[0]
+
+            # Predict using parameters
+            pred = df.loc[instance.test_set, '{}'.format(best_params)].values.astype(int)
+            real = df.loc[instance.test_set,'Direction'].values.astype(int)
+            pred_arr = np.r_[pred_arr, pred]
+            real_arr = np.r_[real_arr, real]
+
+        # Evaluate the entire test set together
+        quality_metrics_dict = da.classification_metrics(y_true=real_arr, y_pred=pred_arr)
+
+        return quality_metrics_dict
+    def execute_nonparam_test_routine(self, df, ta_pred_func):
+        test_spec = self.test_spec
+        start_dates = test_spec.start_dates
+
+        # Remove NaN entries
+        df = df.dropna()
+
+        # Predict for only combination of parameters
+        df['Pred'] = ta_pred_func(df)
+
+        # Remove NaN entries
+        df = df.dropna()
+
+        # Initialize variables
+        pred_arr = np.empty(0)
+        real_arr = np.empty(0)
+        for instance in test_spec.instance:
+            pred = df.loc[instance.test_set,'Pred'].values.astype(int)
+            real = df.loc[instance.test_set,'Direction'].values.astype(int)
+            pred_arr = np.r_[pred_arr, pred]
+            real_arr = np.r_[real_arr, real]
+
+        # Evaluate the entire test set together
+        quality_metrics_dict = da.classification_metrics(y_true=real_arr, y_pred=pred_arr)
+
+        return quality_metrics_dict

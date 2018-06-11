@@ -55,7 +55,6 @@ def mcc_weighted(real, pred, decay=0.99):
     tn = np.sum(((real==-1) & (pred==-1))*weights) # weighted true negatives
     assert (tp+tn+fp+fn) - np.sum(weights) < 1e-3
 
-    print(tp)
     mcc_wtd = (tp*tn - fp*fn)/np.sqrt((tp+fp)*(tp+fn)*(tn+fp)*(tn+fn))
     return mcc_wtd
 
