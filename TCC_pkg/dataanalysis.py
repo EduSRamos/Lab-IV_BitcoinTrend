@@ -24,18 +24,18 @@ from plotly import tools
 #=================== FUNCTIONS I - Performance Assessment ===================#
 def classification_metrics(y_true, y_pred):
     qm = dict()
-    qm['tn'], qm['fp'], qm['fn'], qm['tp'] = skm.confusion_matrix(y_true=y_true, y_pred=y_pred).ravel()
-    qm['accuracy'] = skm.accuracy_score(y_true=y_true, y_pred=y_pred)
-    qm['precision'] = skm.precision_score(y_true=y_true, y_pred=y_pred)
-    qm['recall'] = skm.recall_score(y_true=y_true, y_pred=y_pred)
-    qm['f1'] = skm.f1_score(y_true=y_true, y_pred=y_pred)
+    qm['TN'], qm['FP'], qm['FN'], qm['TP'] = skm.confusion_matrix(y_true=y_true, y_pred=y_pred).ravel()
+    qm['5. Accuracy'] = skm.accuracy_score(y_true=y_true, y_pred=y_pred)
+    qm['5. Precision'] = skm.precision_score(y_true=y_true, y_pred=y_pred)
+    qm['5. Recall'] = skm.recall_score(y_true=y_true, y_pred=y_pred)
+    qm['3. F1'] = skm.f1_score(y_true=y_true, y_pred=y_pred)
     # beta <1/>1 favors precision/recall; beta->0 = only precision; beta->inf = only recall
-    qm['fbeta'] = skm.fbeta_score(y_true=y_true, y_pred=y_pred, beta = 1)
+    qm['2. F-beta_0.5'] = skm.fbeta_score(y_true=y_true, y_pred=y_pred, beta = 0.5)
     # A coefficient of +1 represents a perfect prediction, 0 an average random prediction and -1 an inverse prediction
     # The statistic is also known as the phi coefficient.
-    qm['mathews_corrcoef'] = skm.matthews_corrcoef(y_true=y_true, y_pred=y_pred)
+    qm['1. Mathews_CorrCoef'] = skm.matthews_corrcoef(y_true=y_true, y_pred=y_pred)
     # k=1: complete agreement / k=0: there is no agreement other than what would be expected by chance
-    qm['cohen_kappa'] = skm.cohen_kappa_score(y1=y_true, y2=y_pred)
+    qm['4. Cohen_Kappa'] = skm.cohen_kappa_score(y1=y_true, y2=y_pred)
     return qm
 
 def acc_weighted(real, pred, decay=0.99):
