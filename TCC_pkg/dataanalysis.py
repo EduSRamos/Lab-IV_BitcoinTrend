@@ -22,21 +22,37 @@ import plotly.figure_factory as ff
 from plotly import tools
 
 #=================== FUNCTIONS I - Performance Assessment ===================#
-def classification_metrics(y_true, y_pred):
+def classification_metrics(y_true, y_pred, y_prob=None):
     qm = dict()
-    qm['TN'], qm['FP'], qm['FN'], qm['TP'] = skm.confusion_matrix(y_true=y_true, y_pred=y_pred).ravel()
-    qm['5. Accuracy'] = skm.accuracy_score(y_true=y_true, y_pred=y_pred)
-    qm['5. Precision'] = skm.precision_score(y_true=y_true, y_pred=y_pred)
-    qm['5. Recall'] = skm.recall_score(y_true=y_true, y_pred=y_pred)
-    qm['3. F1'] = skm.f1_score(y_true=y_true, y_pred=y_pred)
-    # beta <1/>1 favors precision/recall; beta->0 = only precision; beta->inf = only recall
-    qm['2. F-beta_0.5'] = skm.fbeta_score(y_true=y_true, y_pred=y_pred, beta = 0.5)
+    if y_prob is not None:
+        qm['1. AUC-ROC'] = skm.roc_auc_score(y_true=y_true, y_score=y_prob)
     # A coefficient of +1 represents a perfect prediction, 0 an average random prediction and -1 an inverse prediction
     # The statistic is also known as the phi coefficient.
-    qm['1. Mathews_CorrCoef'] = skm.matthews_corrcoef(y_true=y_true, y_pred=y_pred)
+    qm['2. Mathews_CorrCoef'] = skm.matthews_corrcoef(y_true=y_true, y_pred=y_pred)
+    # beta <1/>1 favors precision/recall; beta->0 = only precision; beta->inf = only recall
+    qm['3. F-beta_0.5'] = skm.fbeta_score(y_true=y_true, y_pred=y_pred, beta = 0.5)
+    qm['4. F1'] = skm.f1_score(y_true=y_true, y_pred=y_pred)
     # k=1: complete agreement / k=0: there is no agreement other than what would be expected by chance
-    qm['4. Cohen_Kappa'] = skm.cohen_kappa_score(y1=y_true, y2=y_pred)
+    qm['5. Cohen_Kappa'] = skm.cohen_kappa_score(y1=y_true, y2=y_pred)
+    qm['TN'], qm['FP'], qm['FN'], qm['TP'] = skm.confusion_matrix(y_true=y_true, y_pred=y_pred).ravel()
+    qm['6. Precision'] = skm.precision_score(y_true=y_true, y_pred=y_pred)
+    qm['7. Specificity'] = qm['TN']/(qm['TN']+qm['FP'])
+    qm['8. Accuracy'] = skm.accuracy_score(y_true=y_true, y_pred=y_pred)
+    qm['9. Recall'] = skm.recall_score(y_true=y_true, y_pred=y_pred)
     return qm
+
+def auc_roc(y_true, y_prob):
+    tpr = [1]
+    fpr = [1]
+    for threshold in np.sort(y_prob):
+        y_pred = (y_prob >=threshold).astype(int)
+        tn, fp, fn, tp = skm.confusion_matrix(y_true=y_true, y_pred=y_pred).ravel()
+        tpr.append(float(tp/(tp+fn)))
+        fpr.append(float(fp/(fp+tn)))
+
+    tpr.append(0)
+    fpr.append(0)
+    return skm.auc(x=fpr, y=tpr)
 
 def acc_weighted(real, pred, decay=0.99):
     '''Calculate the weighted Matthews Correlation Coefficient'''

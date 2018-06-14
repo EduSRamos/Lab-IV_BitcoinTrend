@@ -307,17 +307,52 @@ def AROON_prediction(df, buy=70, sell=-70, initial_position=1):
 
     return df_pred
 
+def get_indicators(df, indicator_list, cols={}):
+    """Calculate a series of indicators.
+
+    Keyword arguments:
+    df -- DataFrame with relevant (High, Open, Low, Close, Volume) values
+    indicator_list -- list of tuples, in which each tuple has 2 elements:
+                      (i) indicators names ('SMA','BB','MACD','RSI',etc) and
+                      (ii) keyword parameters (when needed) to use with indicat.
+    cols -- Dictionary with column names that are not default (default:empty)
+            Use the default names 'High'/'Low'/'Close'/'Volume'/'Open' as keys
+
+    Output:
+    df_out -- DataFrame with columns corresponding to the indicators
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('get_indicators(): df must be a pandas DataFrame')
+
+    col_names={'High':'High','Low':'Low','Open':'Open','Close':'Close','Volume':'Volume'}
+    col_names.update(cols)
+
+    func_lookup = {'SMA':SMA, 'EMA':EMA, 'BB':BB, 'MACD':MACD, 'STOCH':STOCH,
+                   'RSI':RSI, 'CHAIKIN':CHAIKIN, 'AROON':AROON, 'OBV':OBV,
+                   'PVT':PVT, 'DISP':DISP, 'ROC':ROC, 'WILLIAMS':WILLIAMS,
+                   'CCI':CCI
+    }
+
+    df_out = pd.DataFrame(data=[], columns=[], index=df.index)
+    for (indicator, kwparams) in indicator_list:
+        # print(indicator, kwparams)
+        df_out = pd.concat([df_out, func_lookup[indicator](df, **kwparams)], axis=1)
+
+    return df_out
+
+
 # Simple Moving Average - Dependencies: last <window-1> values / Range: inf
-def SMA(df_arr, window, col='Close'):
+def SMA(df_arr, window, col='Close', output_colname='SMA'):
     """Calculate the Simple Moving Average.
 
     Keyword arguments:
     df_arr -- DataFrame or numpy array
     window -- Window of past values to use
     col -- Column with values (default: Close)
+    output_colname -- Name of column that will be returned
 
     Output:
-    sma -- DataFrame with column 'SMA' or a numpy array
+    sma -- DataFrame with column output_colname or a numpy array
     """
     if isinstance(df_arr, pd.DataFrame):
         values = df_arr[col]
@@ -331,22 +366,23 @@ def SMA(df_arr, window, col='Close'):
     if isinstance(df_arr, pd.DataFrame):
         sma = pd.DataFrame(data=np.convolve(values, weights, 'valid'),
                            index=df_arr.index[window-1:],
-                           columns=['SMA']
+                           columns=[output_colname]
                           )
     else:
         sma = np.convolve(values, weights, 'valid')
     return sma
 # Exponential Moving Average - Dependencies: last <window-1> values / Range: inf
-def EMA(df_arr, window, col='Close'):
+def EMA(df_arr, window, col='Close', output_colname='EMA'):
     """Calculate the Exponential Moving Average.
 
     Keyword arguments:
     df_arr -- pandas DataFrame or numpy array
     window -- Window of past values to use
     col -- Column with values (default: Close)
+    output_colname -- Name of column that will be returned
 
     Output:
-    ema -- DataFrame with column 'EMA' or a numpy array
+    ema -- DataFrame with column output_colname or a numpy array
     """
     if isinstance(df_arr, pd.DataFrame):
         values = df_arr[col]
@@ -362,7 +398,7 @@ def EMA(df_arr, window, col='Close'):
         ema_arr[i] = weight*values[i+window-1] + (1-weight)*ema_arr[i-1]
 
     if isinstance(df_arr, pd.DataFrame):
-        ema = pd.DataFrame(data=ema_arr, index=df_arr.index[window-1:], columns=['EMA'])
+        ema = pd.DataFrame(data=ema_arr, index=df_arr.index[window-1:], columns=[output_colname])
     else:
         ema = ema_arr
     return ema
@@ -592,7 +628,7 @@ def PVT(df, cols={}):
 
     return pvt
 # Disparity - Dependencies: last <window-1> values / Range: [0, inf] (but ~ 1)
-def DISP(df, window, col='Close', ma_func=SMA):
+def DISP(df, window, col='Close', ma_func=SMA, output_colname='DISP'):
     """Calculate the disparity indicator
 
     Keyword arguments:
@@ -600,9 +636,10 @@ def DISP(df, window, col='Close', ma_func=SMA):
     window -- Window of past values to use
     col -- Column with values (default: Close)
     ma_func -- A function that calculates a moving average (default: SMA)
+    output_colname -- Name of column that will be returned
 
     Output:
-    disp -- DataFrame with column 'DISP'
+    disp -- DataFrame with column <output_colname>
     """
     if not isinstance(df, pd.DataFrame):
         raise TypeError('DISP: df must be a pandas DataFrame')
@@ -610,20 +647,21 @@ def DISP(df, window, col='Close', ma_func=SMA):
     sma_arr = ma_func(df,window,col).values.ravel()
     disp_arr = df[col].values[window-1:] / sma_arr
 
-    disp = pd.DataFrame(data=disp_arr, index=df.index[window-1:], columns=['DISP'])
+    disp = pd.DataFrame(data=disp_arr, index=df.index[window-1:], columns=[output_colname])
 
     return disp
 # Rate of Change - Dependencies: last <window> values / Range: [0, inf] (but ~1)
-def ROC(df, gap, col='Close'):
+def ROC(df, gap, col='Close', output_colname='ROC'):
     """Calculate the rate of change
 
     Keyword arguments:
     df -- DataFrame
     gap -- Distance between values to compare
     col -- Column with values (default: Close)
+    output_colname -- Name of column that will be returned
 
     Output:
-    roc -- DataFrame with column 'ROC'
+    roc -- DataFrame with column output_colname
     """
     if not isinstance(df, pd.DataFrame):
         raise TypeError('ROC: df must be a pandas DataFrame')
@@ -631,7 +669,7 @@ def ROC(df, gap, col='Close'):
     values = df[col].values
     roc_arr = values[gap:] / values[:-gap]
 
-    roc = pd.DataFrame(data=roc_arr, index=df.index[gap:], columns=['ROC'])
+    roc = pd.DataFrame(data=roc_arr, index=df.index[gap:], columns=[output_colname])
 
     return roc
 # Larry William's %R - Dependencies: past 13 days / Range: [0 -100]
