@@ -27,7 +27,7 @@ def execute_test_routine(series_name, df, test_spec, classification_func=None, w
 
     # Parameters
     if windows is None:
-        windows = [63, 126, 252, df.shape[0]] # past values to fit ARMA
+        windows = [91, 187, 365, df.shape[0]] # past values to fit ARMA
 
     # Hyperparameters
     if decay_array is None:
